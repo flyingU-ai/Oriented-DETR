@@ -1,12 +1,12 @@
 num_classes = 91
-ignore_cls = [10, 12] # these classes are 0 degree default
-inf_conf = 0.005 # for inference, set 0.005 for accurate coco metrics
-#lr_params
+ignore_cls = [10, 12]  # these classes are 0 degree default
+inf_conf = 0.005  # for inference, set 0.005 for accurate coco metrics
+# lr_params
 lr = 0.0001
-param_dict_type = 'default'
+param_dict_type = "default"
 lr_backbone = 1e-05
-lr_backbone_names = ['backbone.0']
-lr_linear_proj_names = ['reference_points', 'sampling_offsets']
+lr_backbone_names = ["backbone.0"]
+lr_linear_proj_names = ["reference_points", "sampling_offsets"]
 lr_linear_proj_mult = 0.1
 ddetr_lr_param = False
 batch_size = 2
@@ -17,14 +17,14 @@ clip_max_norm = 0.1
 onecyclelr = False
 multi_step_lr = True
 lr_drop_list = [27, 33]
-modelname = 'odetr'
+modelname = "odetr"
 frozen_weights = None
-backbone = 'swin_T_224_1k'
+backbone = "swin_T_224_1k"
 use_checkpoint = False
 
-#model params
+# model params
 dilation = False
-position_embedding = 'sine'
+position_embedding = "sine"
 pe_temperatureH = 20
 pe_temperatureW = 20
 return_interm_indices = [1, 2, 3]
@@ -49,7 +49,7 @@ dabdetr_yolo_like_anchor_update = False
 dabdetr_deformable_encoder = False
 dabdetr_deformable_decoder = False
 use_deformable_box_attn = False
-box_attn_type = 'roi_align'
+box_attn_type = "roi_align"
 dec_layer_number = None
 num_feature_levels = 4
 enc_n_points = 4
@@ -59,7 +59,7 @@ dln_xy_noise = 0.2
 dln_hw_noise = 0.2
 add_channel_attention = False
 add_pos_value = False
-two_stage_type = 'standard'
+two_stage_type = "standard"
 two_stage_pat_embed = 0
 two_stage_add_query_num = 0
 two_stage_bbox_embed_share = False
@@ -69,8 +69,8 @@ two_stage_learn_wh = False
 two_stage_default_hw = 0.05
 two_stage_keep_all_tokens = False
 num_select = 900
-transformer_activation = 'relu'
-batch_norm_type = 'FrozenBatchNorm2d'
+transformer_activation = "relu"
+batch_norm_type = "FrozenBatchNorm2d"
 masks = False
 aux_loss = True
 embed_init_tgt = True
@@ -92,9 +92,9 @@ no_interm_angle_loss = False
 focal_alpha = 0.25
 
 # decoder config
-decoder_sa_type = 'sa' # ['sa', 'ca_label', 'ca_content']
-matcher_type = 'AngleHungarianMatcher'
-decoder_module_seq = ["intra_sa", "sa", 'ca', 'ffn']
+decoder_sa_type = "sa"  # ['sa', 'ca_label', 'ca_content']
+matcher_type = "AngleHungarianMatcher"
+decoder_module_seq = ["intra_sa", "sa", "ca", "ffn"]
 nms_iou_threshold = -1
 dec_pred_bbox_embed_share = True
 dec_pred_angle_embed_share = True

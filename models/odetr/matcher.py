@@ -19,6 +19,8 @@ import torch
 from torch import nn
 from scipy.optimize import linear_sum_assignment
 import torch.nn.functional as F
+
+
 def bbox2vec(bbox):
     center = (bbox[:, 0:2] + bbox[:, 2:4] + bbox[:, 4:6] + bbox[:, 6:8]) / 4
     v1 = bbox[:, 0:2] - center
@@ -33,10 +35,19 @@ def bbox2vec(bbox):
     v2 = v2 / mod2
     v3 = v3 / mod3
     v4 = v4 / mod4
-    vec = torch.cat([v1.unsqueeze(dim=-2), v2.unsqueeze(dim=-2), v3.unsqueeze(dim=-2), v4.unsqueeze(dim=-2)], dim=-2)
+    vec = torch.cat(
+        [
+            v1.unsqueeze(dim=-2),
+            v2.unsqueeze(dim=-2),
+            v3.unsqueeze(dim=-2),
+            v4.unsqueeze(dim=-2),
+        ],
+        dim=-2,
+    )
     mod = torch.cat([mod1, mod2, mod3, mod4], dim=-1)
     # vec = bbox - torch.cat([center for i in range(4)], dim=-1)
     return vec, mod, center
+
 
 class AngleHungarianMatcher(nn.Module):
     """This class computes an assignment between the targets and the predictions of the network
@@ -46,11 +57,13 @@ class AngleHungarianMatcher(nn.Module):
     while the others are un-matched (and thus treated as non-objects).
     """
 
-    def __init__(self,
-                 cost_class: float = 1,
-                 cost_bbox: float = 1,
-                 cost_angle: float = 1,
-                 focal_alpha: float = 0.25):
+    def __init__(
+        self,
+        cost_class: float = 1,
+        cost_bbox: float = 1,
+        cost_angle: float = 1,
+        focal_alpha: float = 0.25,
+    ):
         """Creates the matcher
 
         Params:
@@ -63,10 +76,12 @@ class AngleHungarianMatcher(nn.Module):
         self.cost_bbox = cost_bbox
         self.cost_angle = cost_angle
         self.focal_alpha = focal_alpha
-        assert cost_class != 0 or cost_bbox != 0 or cost_class != 0, "all costs cant be 0"
+        assert (
+            cost_class != 0 or cost_bbox != 0 or cost_class != 0
+        ), "all costs cant be 0"
 
     def forward(self, outputs, targets):
-        """ Performs the matching
+        """Performs the matching
 
         Params:
             outputs: This is a dict that contains at least these entries:
@@ -87,7 +102,9 @@ class AngleHungarianMatcher(nn.Module):
         """
         with torch.no_grad():
             bs, num_queries = outputs["pred_logits"].shape[:2]
-            k = outputs["pred_boxes"].shape[2]  # number of points to represent an object
+            k = outputs["pred_boxes"].shape[
+                2
+            ]  # number of points to represent an object
             indices = []
             for i in range(bs):
                 # prepare for out
@@ -95,7 +112,7 @@ class AngleHungarianMatcher(nn.Module):
                 out_points = outputs["pred_boxes"][i]  # [batch_size * num_queries, 4]
                 out_angle = outputs["pred_angles"][i]
                 out_center = out_points[:, k - 1, :]
-                out_bbox = out_points[:, 0:k - 1, :]
+                out_bbox = out_points[:, 0 : k - 1, :]
                 # prepare for target
                 tgt_ids = targets[i]["labels"]
                 tgt_bbox = targets[i]["vecs"]
@@ -107,11 +124,17 @@ class AngleHungarianMatcher(nn.Module):
                     cost_bbox = torch.ones(num_queries, tgt_num, device=out_bbox.device)
                 else:
                     # calculate distance metrix in parallel
-                    tgt_center = [x.unsqueeze(dim=0).repeat(num_queries, 1) for x in t_center]
-                    tgt_center = torch.cat(tgt_center, dim=0).unsqueeze(1).repeat(1, k - 1, 1)
+                    tgt_center = [
+                        x.unsqueeze(dim=0).repeat(num_queries, 1) for x in t_center
+                    ]
+                    tgt_center = (
+                        torch.cat(tgt_center, dim=0).unsqueeze(1).repeat(1, k - 1, 1)
+                    )
                     out_compute = out_bbox.repeat(tgt_num, 1, 1)
                     out_vec_compute = out_compute - tgt_center
-                    tgt_vec_compute = [x.unsqueeze(dim=0).repeat(num_queries, 1, 1) for x in tgt_vec]
+                    tgt_vec_compute = [
+                        x.unsqueeze(dim=0).repeat(num_queries, 1, 1) for x in tgt_vec
+                    ]
                     tgt_vec_compute = torch.cat(tgt_vec_compute, dim=0)
                     out_vec_compute = out_vec_compute.transpose(1, 2).unsqueeze(dim=2)
                     tgt_vec_compute = tgt_vec_compute.transpose(1, 2).unsqueeze(dim=-1)
@@ -125,32 +148,55 @@ class AngleHungarianMatcher(nn.Module):
                     dis_matrix = torch.sqrt((dis_matrix - tgt_mod) ** 2)
                     cost_bbox = torch.sum(dis_matrix, dim=-1)
                 # calculate center cost
-                cost_center = torch.cdist(out_center.to(dtype=torch.float64), t_center, p=1)
+                cost_center = torch.cdist(
+                    out_center.to(dtype=torch.float64), t_center, p=1
+                )
 
                 # calculate class cost
                 alpha = 0.25
                 gamma = 2.0
-                neg_cost_class = (1 - alpha) * (out_prob ** gamma) * (-(1 - out_prob + 1e-8).log())
-                pos_cost_class = alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
+                neg_cost_class = (
+                    (1 - alpha) * (out_prob**gamma) * (-(1 - out_prob + 1e-8).log())
+                )
+                pos_cost_class = (
+                    alpha * ((1 - out_prob) ** gamma) * (-(out_prob + 1e-8).log())
+                )
                 cost_class = pos_cost_class[:, tgt_ids] - neg_cost_class[:, tgt_ids]
 
                 # Compute the angle cost between angles
-                cost_angle = torch.zeros(out_angle.shape[0], tgt_angle.shape[0]).to(cost_class.device)
+                cost_angle = torch.zeros(out_angle.shape[0], tgt_angle.shape[0]).to(
+                    cost_class.device
+                )
                 for j in range(tgt_angle.shape[0]):
                     tgt_tempt = tgt_angle[j]
-                    cost_angle[:, j] = F.binary_cross_entropy_with_logits(out_angle,
-                                                                          tgt_tempt.expand_as(out_angle),
-                                                                          reduction='none').mean(1)
+                    cost_angle[:, j] = F.binary_cross_entropy_with_logits(
+                        out_angle, tgt_tempt.expand_as(out_angle), reduction="none"
+                    ).mean(1)
                 # Final cost matrix
-                C = self.cost_bbox * (cost_bbox + cost_center) + self.cost_class * cost_class + self.cost_angle * cost_angle
+                C = (
+                    self.cost_bbox * (cost_bbox + cost_center)
+                    + self.cost_class * cost_class
+                    + self.cost_angle * cost_angle
+                )
                 indices.append(linear_sum_assignment(C.cpu()))
-            return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
+            return [
+                (
+                    torch.as_tensor(i, dtype=torch.int64),
+                    torch.as_tensor(j, dtype=torch.int64),
+                )
+                for i, j in indices
+            ]
+
 
 def build_matcher(args):
-    if args.matcher_type == 'AngleHungarianMatcher':
+    if args.matcher_type == "AngleHungarianMatcher":
         return AngleHungarianMatcher(
-            cost_class=args.set_cost_class, cost_bbox=args.set_cost_bbox, cost_angle=args.set_cost_angle,
-            focal_alpha=args.focal_alpha
+            cost_class=args.set_cost_class,
+            cost_bbox=args.set_cost_bbox,
+            cost_angle=args.set_cost_angle,
+            focal_alpha=args.focal_alpha,
         )
     else:
-        raise NotImplementedError("Unknown args.matcher_type: {}".format(args.matcher_type))
+        raise NotImplementedError(
+            "Unknown args.matcher_type: {}".format(args.matcher_type)
+        )

@@ -51,8 +51,7 @@ def setup_logger(
         abbrev_name = name
 
     plain_formatter = logging.Formatter(
-        '[%(asctime)s.%(msecs)03d]: %(message)s',
-        datefmt='%m/%d %H:%M:%S'
+        "[%(asctime)s.%(msecs)03d]: %(message)s", datefmt="%m/%d %H:%M:%S"
     )
     # stdout logging: master only
     if distributed_rank == 0:
